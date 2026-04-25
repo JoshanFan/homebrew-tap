@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+    paths:
+      - "Casks/**"
+      - ".github/workflows/ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "Casks/**"
+      - ".github/workflows/ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Homebrew/actions/setup-homebrew@master
+
+      - name: Tap self into local Homebrew
+        run: |
+          tap_short="${GITHUB_REPOSITORY#*/homebrew-}"
+          owner_lower=$(echo "${GITHUB_REPOSITORY%/*}" | tr '[:upper:]' '[:lower:]')
+          full_tap="${owner_lower}/${tap_short}"
+          brew tap "$full_tap" "$GITHUB_WORKSPACE"
+          echo "FULL_TAP=$full_tap" >> "$GITHUB_ENV"
+
+      - name: brew style
+        run: brew style Casks/
+
+      - name: brew audit
+        run: |
+          shopt -s nullglob
+          for cask_file in Casks/*.rb; do
+            name=$(basename "$cask_file" .rb)
+            echo "::group::audit $FULL_TAP/$name"
+            brew audit --strict --online --cask "$FULL_TAP/$name"
+            echo "::endgroup::"
+          done
