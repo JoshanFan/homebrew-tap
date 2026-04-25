@@ -29,7 +29,7 @@ jobs:
           target="$(brew --repo)/Library/Taps/${owner}/homebrew-${tap_short}"
           rm -rf "$target"
           mkdir -p "$(dirname "$target")"
-          cp -R "$GITHUB_WORKSPACE" "$target"
+          ln -s "$GITHUB_WORKSPACE" "$target"
           echo "TAP=${owner}/${tap_short}" >> "$GITHUB_ENV"
 
       - name: brew style
