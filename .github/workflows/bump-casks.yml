@@ -1,0 +1,65 @@
+name: Auto-bump casks
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # daily 06:00 UTC ≈ 14:00 Asia/Taipei
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bump:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.BUMP_PAT }}
+
+      - uses: Homebrew/actions/setup-homebrew@main
+
+      - name: Configure git identity
+        run: |
+          git config --global user.name  "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Stage workspace as tap
+        run: |
+          tap_short="${GITHUB_REPOSITORY#*/homebrew-}"
+          owner=$(echo "${GITHUB_REPOSITORY%/*}" | tr '[:upper:]' '[:lower:]')
+          target="$(brew --repo)/Library/Taps/${owner}/homebrew-${tap_short}"
+          rm -rf "$target"
+          mkdir -p "$(dirname "$target")"
+          ln -s "$GITHUB_WORKSPACE" "$target"
+          echo "TAP=${owner}/${tap_short}" >> "$GITHUB_ENV"
+
+      - name: Run brew bump-cask-pr for every cask
+        env:
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.BUMP_PAT }}
+          GH_TOKEN:                 ${{ secrets.BUMP_PAT }}
+        run: |
+          shopt -s nullglob
+          for cask_file in Casks/*.rb; do
+            name=$(basename "$cask_file" .rb)
+            full="${TAP}/${name}"
+            echo "::group::bump-cask-pr ${full}"
+            # --no-fork: push branch to origin (this repo), don't try to fork
+            # --no-browse: don't open a browser
+            # || true: bump-cask-pr exits non-zero when no new version exists; that's fine
+            brew bump-cask-pr --no-browse --no-fork "$full" || echo "(no bump for $name)"
+            echo "::endgroup::"
+          done
+
+      - name: Enable auto-merge on any open bump PR
+        env:
+          GH_TOKEN: ${{ secrets.BUMP_PAT }}
+        run: |
+          gh pr list \
+            --repo "${{ github.repository }}" \
+            --state open \
+            --json number,headRefName \
+            | jq -r '.[] | select(.headRefName | startswith("bump-")) | .number' \
+            | while read -r pr; do
+                echo "Enabling auto-merge on PR #$pr"
+                gh pr merge --auto --squash --repo "${{ github.repository }}" "$pr" || true
+              done
