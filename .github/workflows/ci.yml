@@ -20,25 +20,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: Homebrew/actions/setup-homebrew@master
+      - uses: Homebrew/actions/setup-homebrew@main
 
-      - name: Tap self into local Homebrew
+      - name: Stage workspace as tap
         run: |
           tap_short="${GITHUB_REPOSITORY#*/homebrew-}"
-          owner_lower=$(echo "${GITHUB_REPOSITORY%/*}" | tr '[:upper:]' '[:lower:]')
-          full_tap="${owner_lower}/${tap_short}"
-          brew tap "$full_tap" "$GITHUB_WORKSPACE"
-          echo "FULL_TAP=$full_tap" >> "$GITHUB_ENV"
+          owner=$(echo "${GITHUB_REPOSITORY%/*}" | tr '[:upper:]' '[:lower:]')
+          target="$(brew --repo)/Library/Taps/${owner}/homebrew-${tap_short}"
+          rm -rf "$target"
+          mkdir -p "$(dirname "$target")"
+          cp -R "$GITHUB_WORKSPACE" "$target"
+          echo "TAP=${owner}/${tap_short}" >> "$GITHUB_ENV"
 
       - name: brew style
-        run: brew style Casks/
+        run: brew style "$TAP"
 
       - name: brew audit
         run: |
           shopt -s nullglob
           for cask_file in Casks/*.rb; do
             name=$(basename "$cask_file" .rb)
-            echo "::group::audit $FULL_TAP/$name"
-            brew audit --strict --online --cask "$FULL_TAP/$name"
+            echo "::group::audit $TAP/$name"
+            brew audit --strict --online --cask "$TAP/$name"
             echo "::endgroup::"
           done
