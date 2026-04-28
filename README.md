@@ -19,7 +19,7 @@ Upgrade later with `brew upgrade --cask openusage` (or just `brew upgrade`).
 
 ## How updates work
 
-A scheduled GitHub Action runs `brew bump-cask-pr` once a day. New upstream versions land here as auto-merging PRs once CI (`brew style` + `brew audit --online`) passes.
+A scheduled GitHub Action runs `brew bump-cask-pr` every 12 hours. New upstream versions land here as auto-merging PRs once CI (`brew style` + `brew audit --online`) passes.
 
 ## Contributing
 
