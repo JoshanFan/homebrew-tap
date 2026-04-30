@@ -31,7 +31,7 @@ jobs:
           ln -s "$GITHUB_WORKSPACE" "$target"
           echo "TAP=${owner}/${tap_short}" >> "$GITHUB_ENV"
 
-      - name: Run brew bump-cask-pr for every cask
+      - name: Run brew bump for every cask
         env:
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.BUMP_PAT }}
           GH_TOKEN:                 ${{ secrets.BUMP_PAT }}
@@ -40,11 +40,10 @@ jobs:
           for cask_file in Casks/*.rb; do
             name=$(basename "$cask_file" .rb)
             full="${TAP}/${name}"
-            echo "::group::bump-cask-pr ${full}"
-            # --no-fork: push branch to origin (this repo), don't try to fork
-            # --no-browse: don't open a browser
-            # || true: bump-cask-pr exits non-zero when no new version exists; that's fine
-            brew bump-cask-pr --no-browse --no-fork "$full" || echo "(no bump for $name)"
+            echo "::group::bump ${full}"
+            # `brew bump` runs livecheck, determines the new version, and then
+            # calls `brew bump-cask-pr` with explicit version arguments.
+            brew bump --cask --open-pr --no-fork "$full"
             echo "::endgroup::"
           done
 
