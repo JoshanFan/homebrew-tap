@@ -6,7 +6,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
 
 jobs:
   bump:
@@ -33,8 +34,8 @@ jobs:
 
       - name: Run brew bump for every cask
         env:
-          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.BUMP_PAT }}
-          GH_TOKEN:                 ${{ secrets.BUMP_PAT }}
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN:                 ${{ secrets.GITHUB_TOKEN }}
         run: |
           shopt -s nullglob
           for cask_file in Casks/*.rb; do
@@ -49,7 +50,7 @@ jobs:
 
       - name: Enable auto-merge on any open bump PR
         env:
-          GH_TOKEN: ${{ secrets.BUMP_PAT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh pr list \
             --repo "${{ github.repository }}" \
