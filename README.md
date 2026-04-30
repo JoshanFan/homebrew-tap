@@ -19,7 +19,7 @@ Upgrade later with `brew upgrade --cask openusage` (or just `brew upgrade`).
 
 ## How updates work
 
-A scheduled GitHub Action runs `brew bump --cask --open-pr` every 12 hours. It uses Homebrew livecheck to detect new upstream versions, then opens auto-merging PRs once CI (`brew style` + `brew audit --online`) passes.
+A scheduled GitHub Action runs `brew bump --cask --open-pr` every 6 hours. It uses Homebrew livecheck to detect new upstream versions, then opens auto-merging PRs once CI (`brew style` + `brew audit --online`) passes.
 
 ## Contributing
 
