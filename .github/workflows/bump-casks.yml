@@ -68,8 +68,9 @@ jobs:
 
       - name: Run brew bump for every cask
         env:
-          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_TOKEN:                 ${{ secrets.GITHUB_TOKEN }}
+          # PAT (not GITHUB_TOKEN) so the resulting PR triggers CI workflows.
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.BUMP_PAT }}
+          GH_TOKEN:                 ${{ secrets.BUMP_PAT }}
         run: |
           shopt -s nullglob
           for cask_file in Casks/*.rb; do
