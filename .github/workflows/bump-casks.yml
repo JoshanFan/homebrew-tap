@@ -32,6 +32,40 @@ jobs:
           ln -s "$GITHUB_WORKSPACE" "$target"
           echo "TAP=${owner}/${tap_short}" >> "$GITHUB_ENV"
 
+      - name: Remove stale bump branches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          shopt -s nullglob
+          for cask_file in Casks/*.rb; do
+            name=$(basename "$cask_file" .rb)
+            prefix="bump-${name}-"
+
+            while read -r branch; do
+              [[ -n "$branch" ]] || continue
+
+              open_prs=$(gh pr list \
+                --repo "${{ github.repository }}" \
+                --state open \
+                --head "$branch" \
+                --json number \
+                --jq 'length')
+
+              if [[ "$open_prs" != "0" ]]; then
+                echo "Keeping $branch because it still has an open PR"
+                continue
+              fi
+
+              echo "Deleting stale remote branch $branch"
+              git push origin --delete "$branch" || true
+            done < <(
+              gh api \
+                --paginate \
+                "repos/${{ github.repository }}/branches?per_page=100" \
+                --jq ".[] | select(.name | startswith(\"${prefix}\")) | .name"
+            )
+          done
+
       - name: Run brew bump for every cask
         env:
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
